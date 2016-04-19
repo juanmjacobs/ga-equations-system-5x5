@@ -1,32 +1,63 @@
 import java.math.BigDecimal;
+import java.util.stream.Stream;
 
-import org.jenetics.BitChromosome;
-import org.jenetics.BitGene;
+import org.jenetics.DoubleChromosome;
+import org.jenetics.DoubleGene;
 import org.jenetics.Genotype;
 import org.jenetics.engine.Engine;
 import org.jenetics.engine.EvolutionResult;
 import org.jenetics.util.Factory;
+
+import com.codepoetics.protonpack.StreamUtils;
+
  
 public class HelloWorld {
-    // 2.) Definition of the fitness function.
-    private static BigDecimal fitnessEval(Genotype<BitGene> gt) {
-        return new BigDecimal(0);
+	
+	static int equation[][] = {
+            {1,2,5,4,8},
+            {3,3,2,1,5},
+            {5,2,1,4,5},
+            {2,5,8,7,2},
+            {1,5,2,3,0}
+			};
+	static Stream<BigDecimal> eq1 = Stream.of(1, 2, 5, 4, 8).map(BigDecimal::valueOf);
+	static Stream<BigDecimal> eq2 = Stream.of(3, 3, 2, 1, 5).map(BigDecimal::valueOf);
+	static Stream<BigDecimal> eq3 = Stream.of(5, 2, 1, 4, 5).map(BigDecimal::valueOf);
+	static Stream<BigDecimal> eq4 = Stream.of(2, 5, 8, 7, 2).map(BigDecimal::valueOf);
+	static Stream<BigDecimal> eq5 = Stream.of(1, 5, 2, 3, 0).map(BigDecimal::valueOf);
+	
+	static BigDecimal operate(Stream<DoubleGene> genes, Stream<BigDecimal> data) {
+		return StreamUtils
+				.zip(genes.map(DoubleGene::doubleValue), data, (a, b) -> BigDecimal.valueOf(a).multiply(b))
+				.reduce(BigDecimal.ZERO, BigDecimal::add);
+	}
+	
+	static Stream<BigDecimal> its = Stream.of(76, 44, 53, 74, 76).map(BigDecimal::valueOf);
+  	static BigDecimal itSumPower2 = its.reduce(BigDecimal.ZERO, BigDecimal::add).pow(2);
+	
+    private static BigDecimal fitnessEval(Genotype<DoubleGene> gt) {
+    	Stream<DoubleGene> values = gt.getChromosome().stream();
+		BigDecimal firstEq = operate(values, eq1).pow(2);
+//    	BigDecimal secondEq = operate(values, eq2).pow(2);
+//    	BigDecimal thirdEq = operate(values, eq3).pow(2);
+//    	BigDecimal fourthEq = operate(values, eq4).pow(2);
+//    	BigDecimal fifthEq = operate(values, eq5).pow(2);
+    	
+		BigDecimal errorValue = firstEq;//.add(secondEq).add(thirdEq).add(fourthEq).add(fifthEq);
+        return itSumPower2.subtract(errorValue).divide(itSumPower2);
     }
+    
+    
  
     public static void main(String[] args) {
-        // 1.) Define the genotype (factory) suitable
-        //     for the problem.
-        Factory<Genotype<BitGene>> gtf =
-            Genotype.of(BitChromosome.of(10, 0.5));
+        Factory<Genotype<DoubleGene>> gtf =
+            Genotype.of(DoubleChromosome.of(Double.MIN_VALUE, Double.MAX_VALUE, 5));
  
-        // 3.) Create the execution environment.
-        Engine<BitGene, BigDecimal> engine = Engine
+        Engine<DoubleGene, BigDecimal> engine = Engine
             .builder(HelloWorld::fitnessEval, gtf)
             .build();
  
-        // 4.) Start the execution (evolution) and
-        //     collect the result.
-        Genotype<BitGene> result = engine.stream()
+        Genotype<DoubleGene> result = engine.stream()
             .limit(100)
             .collect(EvolutionResult.toBestGenotype());
  
