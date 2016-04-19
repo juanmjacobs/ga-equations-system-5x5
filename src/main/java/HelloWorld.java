@@ -10,59 +10,128 @@ import org.jenetics.DoubleGene;
 import org.jenetics.Genotype;
 import org.jenetics.engine.Engine;
 import org.jenetics.engine.EvolutionResult;
-import org.jenetics.util.DoubleRange;
 import org.jenetics.util.Factory;
 
 public class HelloWorld {
 	
-	static List<BigDecimal> its = listFrom(76, 44, 53, 74, 76);
-	static BigDecimal itSumPower2 = BigDecimal.valueOf(104329);
-//	static BigDecimal itSumPower2 = its.stream().reduce(BigDecimal.ZERO, BigDecimal::add).pow(2);
+	static List<BigDecimal> its;
 	
-	static List<BigDecimal> eq1 = listFrom(1, 2, 5, 4, 8);
-	static List<BigDecimal> eq2 = listFrom(3, 3, 2, 1, 5);
-	static List<BigDecimal> eq3 = listFrom(5, 2, 1, 4, 5);
-	static List<BigDecimal> eq4 = listFrom(2, 5, 8, 7, 2);
-	static List<BigDecimal> eq5 = listFrom(1, 5, 2, 3, 0);
+	static List<BigDecimal> eq1;
+	static List<BigDecimal> eq2;
+	static List<BigDecimal> eq3;
+	static List<BigDecimal> eq4;
+	static List<BigDecimal> eq5;
 	
-	static List<BigDecimal> listFrom(int a, int b, int c, int d, int e) {
-		return new ArrayList<>(Arrays.asList(BigDecimal.valueOf(a),BigDecimal.valueOf(b),BigDecimal.valueOf(c),BigDecimal.valueOf(d),BigDecimal.valueOf(e)));
-	}	
+	private static BigDecimal term(List<DoubleGene> genes, List<BigDecimal> datas, int index) {
+		BigDecimal value = datas.get(index);
+		DoubleGene gene = genes.get(index);
+		BigDecimal geneValue = BigDecimal.valueOf(gene.doubleValue());
+		return value.multiply(geneValue);
+	}
 	
-	static BigDecimal operate(List<DoubleGene> genes, List<BigDecimal> datas) {
-		return datas.get(0).multiply(BigDecimal.valueOf(genes.get(0).doubleValue()))
-				.add(datas.get(1).multiply(BigDecimal.valueOf(genes.get(1).doubleValue())))
-				.add(datas.get(2).multiply(BigDecimal.valueOf(genes.get(2).doubleValue())))
-				.add(datas.get(3).multiply(BigDecimal.valueOf(genes.get(3).doubleValue())))
-				.add(datas.get(4).multiply(BigDecimal.valueOf(genes.get(4).doubleValue())));
+	private static BigDecimal realValue(List<DoubleGene> genes, List<BigDecimal> datas) {
+		return term(genes, datas, 0)
+          .add(term(genes, datas, 1))
+          .add(term(genes, datas, 2))
+          .add(term(genes, datas, 3))
+          .add(term(genes, datas, 4));
+	}
+
+	private static BigDecimal errorValue(List<DoubleGene> genes, List<BigDecimal> datas, int index) {
+		return realValue(genes, datas).subtract(its.get(index)).abs();
+	}
+
+	private static BigDecimal sumErrorValues(Genotype<DoubleGene> gt) {
+    	List<DoubleGene> values = gt.getChromosome().stream().collect(Collectors.toList());
+
+    	BigDecimal firstEq = errorValue(values, eq1, 0);
+    	BigDecimal secondEq = errorValue(values, eq2, 1);
+    	BigDecimal thirdEq = errorValue(values, eq3, 2);
+    	BigDecimal fourthEq = errorValue(values, eq4, 3);
+    	BigDecimal fifthEq = errorValue(values, eq5, 4);
+
+    	BigDecimal errorValue = firstEq.add(secondEq).add(thirdEq).add(fourthEq).add(fifthEq);
+
+    	System.out.println("ERROR VALUES: " + scale(errorValue));
+
+		return errorValue;
+	}
+
+	private static BigDecimal sumTermValues() {
+		return its.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+	}
+	
+	private static BigDecimal scale(BigDecimal bd) {
+		return bd.setScale(4, RoundingMode.HALF_DOWN);
 	}
 	
     private static BigDecimal fitnessEval(Genotype<DoubleGene> gt) {
-    	List<DoubleGene> values = gt.getChromosome().stream().collect(Collectors.toList());
-		BigDecimal firstEq = operate(values, eq1).subtract(its.get(0));
-    	BigDecimal secondEq = operate(values, eq2).subtract(its.get(1));
-    	BigDecimal thirdEq = operate(values, eq3).subtract(its.get(2));
-    	BigDecimal fourthEq = operate(values, eq4).subtract(its.get(3));
-    	BigDecimal fifthEq = operate(values, eq5).subtract(its.get(4));
+    	BigDecimal sumTermValuesSquared = sumTermValues().pow(2);
+    	BigDecimal sumErrorValuesSquared = sumErrorValues(gt).pow(2);
     	
-		BigDecimal errorValue = firstEq.add(secondEq).add(thirdEq).add(fourthEq).add(fifthEq).pow(2);
-		
-		System.out.println("Valores: " + values);
-		System.out.println("Funcion de aptitud: " + itSumPower2.subtract(errorValue).divide(itSumPower2, 2, RoundingMode.HALF_UP));
-		System.out.println("Error: " + errorValue);
-        return itSumPower2.subtract(errorValue).divide(itSumPower2, 2, RoundingMode.HALF_UP);
+    	BigDecimal actitudeFunction = sumTermValuesSquared
+    			.subtract(sumErrorValuesSquared) 
+    			.divide(sumTermValuesSquared, 2, RoundingMode.HALF_DOWN);
+
+    	System.out.println("SUMATORIA TERMINOS INDEPENDIENTES AL CUADRADO: " + scale(sumErrorValuesSquared));
+    	System.out.println("SUMATORIA ERRORES AL CUADRADO: " + scale(sumErrorValuesSquared));
+    	System.out.println("FUNCION DE ACTITUD: " + scale(actitudeFunction));
+    	
+		return actitudeFunction;
     }
     
-    public static void main(String[] args) {
-        Factory<Genotype<DoubleGene>> gtf =
-            Genotype.of(DoubleChromosome.of(DoubleRange.of(1, 5), 5));
+	public static void main(String[] args) {
+    	
+       	BigDecimal v1 = BigDecimal.valueOf(1); 
+    	BigDecimal w1 = BigDecimal.valueOf(2); 
+    	BigDecimal x1 = BigDecimal.valueOf(5); 
+    	BigDecimal y1 = BigDecimal.valueOf(4); 
+    	BigDecimal z1 = BigDecimal.valueOf(8); 
+    	BigDecimal ti1 = BigDecimal.valueOf(76);
+    	eq1 = new ArrayList<>(Arrays.asList(v1, w1, x1, y1, z1));
+    	
+       	BigDecimal v2 = BigDecimal.valueOf(3); 
+    	BigDecimal w2 = BigDecimal.valueOf(3); 
+    	BigDecimal x2 = BigDecimal.valueOf(2); 
+    	BigDecimal y2 = BigDecimal.valueOf(1); 
+    	BigDecimal z2 = BigDecimal.valueOf(5); 
+    	BigDecimal ti2 = BigDecimal.valueOf(44);
+    	eq2 = new ArrayList<>(Arrays.asList(v2, w2, x2, y2, z2));
+    	
+       	BigDecimal v3 = BigDecimal.valueOf(5); 
+    	BigDecimal w3 = BigDecimal.valueOf(2); 
+    	BigDecimal x3 = BigDecimal.valueOf(1); 
+    	BigDecimal y3 = BigDecimal.valueOf(4); 
+    	BigDecimal z3 = BigDecimal.valueOf(5); 
+    	BigDecimal ti3 = BigDecimal.valueOf(53);
+    	eq3 = new ArrayList<>(Arrays.asList(v3, w3, x3, y3, z3));
+    	
+       	BigDecimal v4 = BigDecimal.valueOf(2); 
+    	BigDecimal w4 = BigDecimal.valueOf(5); 
+    	BigDecimal x4 = BigDecimal.valueOf(8); 
+    	BigDecimal y4 = BigDecimal.valueOf(7); 
+    	BigDecimal z4 = BigDecimal.valueOf(2); 
+    	BigDecimal ti4 = BigDecimal.valueOf(74);
+    	eq4 = new ArrayList<>(Arrays.asList(v4, w4, x4, y4, z4));
+    	
+       	BigDecimal v5 = BigDecimal.valueOf(1); 
+    	BigDecimal w5 = BigDecimal.valueOf(5); 
+    	BigDecimal x5 = BigDecimal.valueOf(2); 
+    	BigDecimal y5 = BigDecimal.valueOf(3); 
+    	BigDecimal z5 = BigDecimal.valueOf(0); 
+    	BigDecimal ti5 = BigDecimal.valueOf(76);
+    	eq5 = new ArrayList<>(Arrays.asList(v5, w5, x5, y5, z5));
+    	
+    	its = new ArrayList<>(Arrays.asList(ti1, ti2, ti3, ti4, ti5));
+    	
+        Factory<Genotype<DoubleGene>> gtf = Genotype.of(DoubleChromosome.of(1, 5, 5));
  
         Engine<DoubleGene, BigDecimal> engine = Engine
             .builder(HelloWorld::fitnessEval, gtf)
             .build();
  
         Genotype<DoubleGene> result = engine.stream()
-            .limit(100)
+            .limit(1)
             .collect(EvolutionResult.toBestGenotype());
  
         System.out.println("Solution:\n" + result);
