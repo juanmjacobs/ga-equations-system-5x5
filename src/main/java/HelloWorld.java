@@ -5,12 +5,14 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.jenetics.DoubleChromosome;
-import org.jenetics.DoubleGene;
 import org.jenetics.Genotype;
+import org.jenetics.IntegerChromosome;
+import org.jenetics.IntegerGene;
 import org.jenetics.engine.Engine;
 import org.jenetics.engine.EvolutionResult;
 import org.jenetics.util.Factory;
+
+import com.codepoetics.protonpack.StreamUtils;
 
 public class HelloWorld {
 	
@@ -22,27 +24,18 @@ public class HelloWorld {
 	static List<BigDecimal> eq4;
 	static List<BigDecimal> eq5;
 	
-	private static BigDecimal term(List<DoubleGene> genes, List<BigDecimal> datas, int index) {
-		BigDecimal value = datas.get(index);
-		DoubleGene gene = genes.get(index);
-		BigDecimal geneValue = BigDecimal.valueOf(gene.doubleValue());
-		return value.multiply(geneValue);
-	}
-	
-	private static BigDecimal realValue(List<DoubleGene> genes, List<BigDecimal> datas) {
-		return term(genes, datas, 0)
-          .add(term(genes, datas, 1))
-          .add(term(genes, datas, 2))
-          .add(term(genes, datas, 3))
-          .add(term(genes, datas, 4));
+	private static BigDecimal realValue(List<IntegerGene> genes, List<BigDecimal> datas) {
+		return StreamUtils
+				.zip(genes.stream(), datas.stream(), (gen, data) -> data.multiply(BigDecimal.valueOf(gen.intValue())))
+				.reduce(BigDecimal.ZERO, BigDecimal::add);
 	}
 
-	private static BigDecimal errorValue(List<DoubleGene> genes, List<BigDecimal> datas, int index) {
+	private static BigDecimal errorValue(List<IntegerGene> genes, List<BigDecimal> datas, int index) {
 		return realValue(genes, datas).subtract(its.get(index)).abs();
 	}
 
-	private static BigDecimal sumErrorValues(Genotype<DoubleGene> gt) {
-    	List<DoubleGene> values = gt.getChromosome().stream().collect(Collectors.toList());
+	private static BigDecimal sumErrorValues(Genotype<IntegerGene> gt) {
+    	List<IntegerGene> values = gt.getChromosome().stream().collect(Collectors.toList());
 
     	BigDecimal firstEq = errorValue(values, eq1, 0);
     	BigDecimal secondEq = errorValue(values, eq2, 1);
@@ -52,8 +45,6 @@ public class HelloWorld {
 
     	BigDecimal errorValue = firstEq.add(secondEq).add(thirdEq).add(fourthEq).add(fifthEq);
 
-    	System.out.println("ERROR VALUES: " + scale(errorValue));
-
 		return errorValue;
 	}
 
@@ -61,22 +52,16 @@ public class HelloWorld {
 		return its.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
 	}
 	
-	private static BigDecimal scale(BigDecimal bd) {
-		return bd.setScale(4, RoundingMode.HALF_DOWN);
-	}
-	
-    private static BigDecimal fitnessEval(Genotype<DoubleGene> gt) {
+    private static BigDecimal fitnessEval(Genotype<IntegerGene> gt) {
     	BigDecimal sumTermValuesSquared = sumTermValues().pow(2);
     	BigDecimal sumErrorValuesSquared = sumErrorValues(gt).pow(2);
     	
+    	if (sumTermValuesSquared.compareTo(sumErrorValuesSquared) == -1) return BigDecimal.ZERO;
+    	
     	BigDecimal actitudeFunction = sumTermValuesSquared
     			.subtract(sumErrorValuesSquared) 
-    			.divide(sumTermValuesSquared, 2, RoundingMode.HALF_DOWN);
+    			.divide(sumTermValuesSquared, 100, RoundingMode.HALF_DOWN);
 
-    	System.out.println("SUMATORIA TERMINOS INDEPENDIENTES AL CUADRADO: " + scale(sumErrorValuesSquared));
-    	System.out.println("SUMATORIA ERRORES AL CUADRADO: " + scale(sumErrorValuesSquared));
-    	System.out.println("FUNCION DE ACTITUD: " + scale(actitudeFunction));
-    	
 		return actitudeFunction;
     }
     
@@ -119,19 +104,19 @@ public class HelloWorld {
     	BigDecimal x5 = BigDecimal.valueOf(2); 
     	BigDecimal y5 = BigDecimal.valueOf(3); 
     	BigDecimal z5 = BigDecimal.valueOf(0); 
-    	BigDecimal ti5 = BigDecimal.valueOf(76);
+    	BigDecimal ti5 = BigDecimal.valueOf(29);
     	eq5 = new ArrayList<>(Arrays.asList(v5, w5, x5, y5, z5));
     	
     	its = new ArrayList<>(Arrays.asList(ti1, ti2, ti3, ti4, ti5));
     	
-        Factory<Genotype<DoubleGene>> gtf = Genotype.of(DoubleChromosome.of(1, 5, 5));
- 
-        Engine<DoubleGene, BigDecimal> engine = Engine
+        Factory<Genotype<IntegerGene>> gtf = Genotype.of(IntegerChromosome.of(-10, 10, 5));
+        
+        Engine<IntegerGene, BigDecimal> engine = Engine
             .builder(HelloWorld::fitnessEval, gtf)
             .build();
  
-        Genotype<DoubleGene> result = engine.stream()
-            .limit(1)
+        Genotype<IntegerGene> result = engine.stream()
+            .limit(10000)
             .collect(EvolutionResult.toBestGenotype());
  
         System.out.println("Solution:\n" + result);
