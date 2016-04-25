@@ -19,7 +19,7 @@ public class HelloWorld {
 	static List<BigDecimal> its;
 	
 	static List<BigDecimal> eq1;
-	static List<BigDecimal> eq2;
+	static List<BigDecimal> eq2;a
 	static List<BigDecimal> eq3;
 	static List<BigDecimal> eq4;
 	static List<BigDecimal> eq5;
@@ -58,11 +58,11 @@ public class HelloWorld {
     	
     	if (sumTermValuesSquared.compareTo(sumErrorValuesSquared) == -1) return BigDecimal.ZERO;
     	
-    	BigDecimal actitudeFunction = sumTermValuesSquared
+    	BigDecimal fitness = sumTermValuesSquared
     			.subtract(sumErrorValuesSquared) 
     			.divide(sumTermValuesSquared, 100, RoundingMode.HALF_DOWN);
 
-		return actitudeFunction;
+		return fitness;
     }
     
 	public static void main(String[] args) {
