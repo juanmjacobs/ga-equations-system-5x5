@@ -19,7 +19,7 @@ public class HelloWorld {
 	static List<BigDecimal> its;
 	
 	static List<BigDecimal> eq1;
-	static List<BigDecimal> eq2;a
+	static List<BigDecimal> eq2;
 	static List<BigDecimal> eq3;
 	static List<BigDecimal> eq4;
 	static List<BigDecimal> eq5;
